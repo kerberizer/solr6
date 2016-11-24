@@ -1,98 +1,84 @@
-# Maintainer: James An <james@jamesan.ca>
+# Maintainer: Luchesar V. ILIEV <luchesar%2eiliev%40gmail%2ecom>
+# Contributor: James An <james@jamesan.ca>
 # Contributor: grimsock <lord.grimsock at gmail dot com>
 # Contributor: David Danier <david.danier@team23.de>
 
+pkgname=solr6
 _pkgname=solr
-pkgname=solr5
-pkgver=5.2.1
-pkgrel=4
 pkgdesc="Popular, blazing fast open source enterprise search platform from the Apache Lucene project"
+
+pkgver=6.2.1
+pkgrel=1
+
 arch=('any')
+url="http://lucene.apache.org/${_pkgname}/"
 license=('Apache')
-url="http://lucene.apache.org/$_pkgname/"
-depends=('java-runtime>=7.u55')
-optdepends=('java-runtime>=8: for improved performance compared to older runtime systems.')
-makedepends=('unzip')
-provides=("$_pkgname=$pkgver")
-conflicts=("$_pkgname")
-source=("http://archive.apache.org/dist/lucene/$_pkgname/$pkgver/$_pkgname-$pkgver.tgz"
-        "$_pkgname"
-        "$_pkgname.service")
-install=$_pkgname.install
-backup=(etc/$_pkgname/conf/{webdefault.xml,zoo.cfg}
-        etc/$_pkgname/conf/jetty{,-{http,https,https-ssl,ssl}}.xml
-        etc/$_pkgname/contexts/$_pkgname-jetty-context.xml
-        etc/$_pkgname/modules/{http,https,server,ssl}.mod
-        etc/$_pkgname/resources/{jetty-logging,log4j}.properties)
 
-sha256sums=('3f54cec862da1376857f96f4a6f2044a5addcebc4df159b8797fd71f7ba8df86'
-            '546690ba89a238efd349c0a2c7c0cf3ebde16de9b502e017dceb43754f8021e1'
-            '37318da4f5aaad606e3d97bf49f038bde34d8d947de178b1c9a86fa5f815c9ee')
+depends=(
+    'java-environment'
+)
 
-prepare() {
-  cd "$_pkgname-$pkgver/server"
+provides=("${_pkgname}=${pkgver}")
+conflicts=("${_pkgname}")
 
-  msg2 'Unpacking war archive'
-  mkdir --parents "$_pkgname-webapp/webapp"
-  unzip -foq webapps/$_pkgname.war -d "$_pkgname-webapp/webapp" #&>/dev/null
-}
+_aptjar=auto-phrase-tokenfilter-1.0.jar
+source=(
+    "http://archive.apache.org/dist/lucene/${_pkgname}/${pkgver}/${_pkgname}-${pkgver}.tgz"
+    "${_pkgname}-cloud.service"
+    "${_pkgname}-node.service"
+    "${_aptjar}"
+)
+sha256sums=(
+    '344cb317ab42978dcc66944dd8cfbd5721e27e1c64919308082b0623a310b607'
+    '492569f40a90923f483afd4392857ab8ddcf7d4662d5cd0782ffd02c7ef6ecf0'
+    'f7011eba0fda0f1abba3846c68d241bc565799608178ea0d38850a79ec4bd165'
+    'bd3507e8c50ae2b9a539c15bfb670397da8dec6224df95002a96581cae5b05aa'
+)
+noextract=(
+    "${_aptjar}"
+)
+install="${_pkgname}.install"
+
+backup=(
+    opt/"${_pkgname}"/bin/solr.in.sh
+    opt/"${_pkgname}"/server/contexts/"${_pkgname}"-jetty-context.xml
+    opt/"${_pkgname}"/server/etc/webdefault.xml
+    opt/"${_pkgname}"/server/etc/jetty{,-{http,https,ssl}}.xml
+    opt/"${_pkgname}"/server/modules/{http,https,server,ssl}.mod
+    opt/"${_pkgname}"/server/resources/{jetty-logging,log4j}.properties
+    opt/"${_pkgname}"/server/"${_pkgname}"/{"${_pkgname}".xml,zoo.cfg}
+)
 
 package() {
-  cd "$_pkgname-$pkgver/server"
+    cd "${srcdir}"
 
-  msg2 'Installing configuration files'
-  for path in etc/*.xml $_pkgname/$_pkgname.xml $_pkgname/zoo.cfg; do
-    file="$(basename $path)"
-    install -Dm644 $path "$pkgdir/etc/$_pkgname/conf/$file"
-  done
-  install -Dm644 "contexts/$_pkgname-jetty-context.xml" "$pkgdir/etc/$_pkgname/contexts/$_pkgname-jetty-context.xml"
-  for module in modules/{http,https,server,ssl}.mod; do
-    install -Dm644 $module "$pkgdir/etc/$_pkgname/$module"
-  done
-  for resource in resources/{jetty-logging,log4j}.properties; do
-    install -Dm644 $resource "$pkgdir/etc/$_pkgname/$resource"
-  done
-  install -dm755 "$pkgdir/var/log/$_pkgname"
+    msg2 "Installing original ${_pkgname} files"
+    mkdir "${pkgdir}/opt"
+    cp -a "${_pkgname}-${pkgver}" "${pkgdir}/opt/${_pkgname}"
+    mkdir "${pkgdir}/opt/${_pkgname}/run"
 
-  msg2 'Installing jar files'
-  for path in lib/*.jar; do
-    file="$(basename $path)"
-    install -Dm644 $path "$pkgdir/usr/lib/$_pkgname/$file"
-  done
-  for path in lib/ext/*.jar; do
-    file="$(basename $path)"
-    install -Dm644 $path "$pkgdir/usr/lib/$_pkgname/ext/$file"
-  done
+    msg2 'Removing unnecessary files'
+    rm "${pkgdir}/opt/${_pkgname}/bin"/*.cmd
 
-  msg2 'Installing documentation'
-  install -dm755 "$pkgdir/usr/share/doc/$_pkgname"
-  for file in README.txt $_pkgname/configsets scripts; do
-    cp --archive $file "$pkgdir/usr/share/doc/$_pkgname"
-  done
+    msg2 'Installing custom files'
+    install -Dm644 "${_aptjar}" \
+        "${pkgdir}/opt/${_pkgname}/server/${_pkgname}-webapp/webapp/WEB-INF/lib/${_aptjar}"
+    mkdir -p "${pkgdir}/usr/lib/systemd/system"
+    for _service in "${_pkgname}"{-cloud,-node}.service ; do
+        install -Dm644 "${_service}" "${pkgdir}/usr/lib/systemd/system/${_service}"
+    done
 
-  msg2 'Installing main application files'
-  for file in start.jar webapps/$_pkgname.war; do
-    install -Dm644 $file "$pkgdir/usr/share/webapps/$_pkgname/$file"
-  done
-  install -Dm755 "../bin/$_pkgname" "$pkgdir/usr/share/webapps/$_pkgname/$_pkgname"
-  install -Dm755 "../bin/$_pkgname.in.sh" "$pkgdir/usr/share/webapps/$_pkgname/$_pkgname.in.sh"
-  cp --archive "$_pkgname-webapp" "$pkgdir/usr/share/webapps/$_pkgname"
-
-  msg2 'Installing original files'
-  install -Dm644 "$srcdir/$_pkgname.service" "$pkgdir/usr/lib/systemd/system/$_pkgname.service"
-  install -Dm755 "$srcdir/$_pkgname" "$pkgdir/usr/bin/$_pkgname"
-
-  msg2 'Adding symlinks and applying file ownership scheme.'
-  ln -s "/etc/$_pkgname/conf" "$pkgdir/usr/share/webapps/$_pkgname/etc"
-  ln -s "/etc/$_pkgname/contexts" "$pkgdir/usr/share/webapps/$_pkgname/contexts"
-  ln -s "/etc/$_pkgname/modules" "$pkgdir/usr/share/webapps/$_pkgname/modules"
-  ln -s "/etc/$_pkgname/resources" "$pkgdir/usr/share/webapps/$_pkgname/resources"
-  ln -s "/usr/lib/$_pkgname" "$pkgdir/usr/share/webapps/$_pkgname/lib"
-  for file in README.txt configsets scripts; do
-    ln -s "/usr/share/doc/$_pkgname/$file" "$pkgdir/usr/share/webapps/$_pkgname/$file"
-  done
-  install -dm755 "$pkgdir/var/lib"
-  ln -s "/usr/share/webapps/$_pkgname" "$pkgdir/var/lib/$_pkgname"
-  ln -s "/var/log/$_pkgname" "$pkgdir/usr/share/webapps/$_pkgname/logs"
-  chown --recursive 521:521 "$pkgdir/etc/$_pkgname" "$pkgdir/var/log/$_pkgname" "$pkgdir/usr/share/webapps/$_pkgname/$_pkgname-webapp"
+    msg2 'Symlinking and fixing file ownership'
+    mkdir -p "${pkgdir}/usr/bin"
+    ln -s "/opt/${_pkgname}/bin/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
+    ln -s "bin/${_pkgname}.in.sh" "${pkgdir}/opt/${_pkgname}/"
+    install -o 521 -g 521 -m 0755 -d "${pkgdir}/opt/${_pkgname}/server/logs"
+    for _file in \
+        "${pkgdir}/opt/${_pkgname}/run" \
+        "${pkgdir}/opt/${_pkgname}/server/${_pkgname}"
+    do
+        chown 521:521 "${_file}"
+    done
 }
+
+# vim: set ts=4 sts=4 sw=4 et:
