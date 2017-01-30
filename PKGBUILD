@@ -7,7 +7,7 @@ pkgname=solr6
 _pkgname=solr
 pkgdesc="Popular, blazing fast open source enterprise search platform from the Apache Lucene project"
 
-pkgver=6.3.0
+pkgver=6.4.0
 pkgrel=1
 
 arch=('any')
@@ -29,7 +29,7 @@ source=(
     "${_aptjar}"
 )
 sha256sums=(
-    '07692257575fe54ddb8a8f64e96d3d352f2f533aa91b5752be1869d2acf2f544'
+    '1213ae09023058ea1cbd971a1b585f891fb63fa76e128611031bfc28c749b502'
     '492569f40a90923f483afd4392857ab8ddcf7d4662d5cd0782ffd02c7ef6ecf0'
     'f7011eba0fda0f1abba3846c68d241bc565799608178ea0d38850a79ec4bd165'
     'SKIP'
