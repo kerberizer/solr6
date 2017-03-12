@@ -8,7 +8,7 @@ _pkgname=solr
 pkgdesc="Popular, blazing fast open source enterprise search platform from the Apache Lucene project"
 
 pkgver=6.4.2
-pkgrel=1
+pkgrel=2
 
 arch=('any')
 url="http://lucene.apache.org/${_pkgname}/"
@@ -59,6 +59,7 @@ package() {
 
     msg2 'Removing unnecessary files'
     rm "${pkgdir}/opt/${_pkgname}/bin"/*.cmd
+    rm -rf "${pkgdir}/opt/${_pkgname}/server/logs/archived"
 
     msg2 'Installing custom files'
     install -Dm644 "${_aptjar}" \
